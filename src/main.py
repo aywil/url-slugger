@@ -6,8 +6,9 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core import settings
-from core.db.crud import add_slug_db, url_from_slug
+from core.db.crud import add_slug_db, get_slug_stats, url_from_slug
 from core.db.db import engine, get_db
+from core.schemas.link_info import UrlInfo
 from core.utils import create_slug, validated_url
 
 
@@ -41,6 +42,24 @@ async def create_slug_url(
     )
 
     return slug
+
+
+@app.get("/stats", response_model=UrlInfo)
+async def get_stats(
+    slug: str,
+    session: AsyncSession = Depends(get_db),
+) -> UrlInfo:
+    stats = await get_slug_stats(
+        slug=slug,
+        session=session,
+    )
+    if not stats:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Slug with statistics not found",
+        )
+
+    return stats
 
 
 @app.get("/{slug}")

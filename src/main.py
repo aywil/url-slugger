@@ -1,10 +1,13 @@
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from core import settings
-from core.db.db import engine
+from core.db.crud import add_slug_db
+from core.db.db import engine, get_db
+from core.utils import create_slug, validated_url
 
 
 @asynccontextmanager
@@ -14,6 +17,29 @@ async def lifespan(my_app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+
+@app.post("/shortlink")
+async def create_slug_url(
+    url: str = Query(...),
+    session: AsyncSession = Depends(get_db),
+) -> str:
+    try:
+        validated_url(url=url)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    slug = create_slug()
+
+    await add_slug_db(
+        url=url,
+        slug=slug,
+        session=session,
+    )
+
+    return slug
 
 
 if __name__ == "__main__":

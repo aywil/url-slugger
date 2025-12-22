@@ -16,3 +16,19 @@ async def add_slug_db(
     )
     session.add(shortlink)
     await session.commit()
+
+
+async def url_from_slug(
+    slug: str,
+    session: AsyncSession,
+):
+    result = await session.execute(select(ShortLink).where(ShortLink.slug == slug))
+    shortlink = result.scalar_one_or_none()
+
+    if not shortlink:
+        return None
+
+    shortlink.clicks += 1
+    await session.commit()
+
+    return shortlink.url

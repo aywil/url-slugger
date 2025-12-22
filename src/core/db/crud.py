@@ -32,3 +32,11 @@ async def url_from_slug(
     await session.commit()
 
     return shortlink.url
+
+
+async def get_slug_stats(slug: str, session: AsyncSession):
+    result = await session.execute(select(ShortLink).where(ShortLink.slug == slug))
+    stats = result.scalar_one_or_none()
+    if not stats:
+        return None
+    return stats

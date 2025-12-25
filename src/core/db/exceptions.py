@@ -8,3 +8,11 @@ class NotFoundSlugError(DatabaseError):
 
 class NotFoundStatisticsError(DatabaseError):
     pass
+
+
+class CustomSlugError(DatabaseError):
+    pass
+
+
+class InvalidUrlError(DatabaseError):
+    pass

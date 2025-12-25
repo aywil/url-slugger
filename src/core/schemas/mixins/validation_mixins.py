@@ -1,3 +1,4 @@
+import re
 from pydantic import field_validator
 import validators
 
@@ -10,4 +11,20 @@ class UrlNormalizationMixin:
             if not validators.url(v):
                 if validators.url(f"https://{v}"):
                     return f"https://{v}"
+        return v
+
+
+class SlugValidationMixin:
+    @field_validator("slug")
+    @classmethod
+    def validate_slug(cls, v: str) -> str:
+        if not re.match(r"^[a-zA-Z0-9\-]+$", v):
+            raise ValueError("Slug can only contain letters, numbers, and hyphens")
+
+        if v.startswith("-") or v.endswith("-"):
+            raise ValueError("Slug cannot start or end with a hyphen")
+
+        if "--" in v:
+            raise ValueError("Slug cannot contain consecutive hyphens")
+
         return v

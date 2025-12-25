@@ -1,42 +1,63 @@
-from sqlalchemy import select
+import secrets
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.models import ShortLink
+from core.schemas import UrlInfo
+
+from .exceptions import NotFoundSlugError, NotFoundStatisticsError
+from .utils import GENERATE_SHORTLINK, get_shortlink_table_from_slug, validated_url
 
 
-async def add_slug_db(
+async def create_slug(
     url: str,
-    slug: str,
     session: AsyncSession,
-):
+) -> str:
+    try:
+        safe_url = validated_url(url=url)
+    except ValueError as e:
+        raise e
+
+    slug = ""
+    for _ in range(6):
+        slug += secrets.choice(GENERATE_SHORTLINK)
 
     shortlink = ShortLink(
         slug=slug,
-        url=url,
+        url=safe_url,
     )
     session.add(shortlink)
     await session.commit()
 
+    return slug
 
-async def url_from_slug(
+
+async def get_url_from_slug(
     slug: str,
     session: AsyncSession,
-):
-    result = await session.execute(select(ShortLink).where(ShortLink.slug == slug))
-    shortlink = result.scalar_one_or_none()
+) -> str:
 
-    if not shortlink:
-        return None
-
-    shortlink.clicks += 1
-    await session.commit()
-
-    return shortlink.url
+    result = await get_shortlink_table_from_slug(
+        slug=slug,
+        session=session,
+    )
+    if not result:
+        raise NotFoundSlugError(f"Slug {slug} doesn't exist")
+    return result.url
 
 
-async def get_slug_stats(slug: str, session: AsyncSession):
-    result = await session.execute(select(ShortLink).where(ShortLink.slug == slug))
-    stats = result.scalar_one_or_none()
+async def get_stats_from_slug(
+    slug: str,
+    session: AsyncSession,
+) -> UrlInfo | None:
+    stats = await get_shortlink_table_from_slug(
+        slug=slug,
+        session=session,
+    )
     if not stats:
-        return None
+        raise NotFoundStatisticsError(f"Statistics about {slug} doesn't exist")
     return stats
+
+
+async def count_clicks_to_slug():
+    pass

@@ -1,6 +1,7 @@
 import re
-from pydantic import field_validator
+
 import validators
+from pydantic import field_validator
 
 
 class UrlNormalizationMixin:

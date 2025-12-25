@@ -5,7 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.models import ShortLink
 
-
 GENERATE_SHORTLINK = string.ascii_letters + string.digits
 
 

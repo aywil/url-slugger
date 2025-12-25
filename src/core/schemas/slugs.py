@@ -1,6 +1,8 @@
 from datetime import datetime
+
 from pydantic import BaseModel, Field, HttpUrl
-from .mixins import UrlNormalizationMixin, SlugValidationMixin
+
+from .mixins import SlugValidationMixin, UrlNormalizationMixin
 
 
 class SlugBase(BaseModel, SlugValidationMixin):

@@ -4,4 +4,4 @@ __all__ = (
     "SlugInfo",
     "UrlBase",
 )
-from .slugs import SlugBase, CustomSlug, SlugInfo, UrlBase
+from .slugs import CustomSlug, SlugBase, SlugInfo, UrlBase

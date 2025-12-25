@@ -5,11 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.models import ShortLink
 from core.schemas import SlugInfo
 
-from .exceptions import CustomSlugError, NotFoundSlugError, NotFoundStatisticsError
-from .utils import (
-    GENERATE_SHORTLINK,
-    get_shortlink_table_from_slug,
-)
+from .exceptions import (CustomSlugError, NotFoundSlugError,
+                         NotFoundStatisticsError)
+from .utils import GENERATE_SHORTLINK, get_shortlink_table_from_slug
 
 
 async def create_slug(

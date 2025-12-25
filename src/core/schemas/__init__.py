@@ -1,2 +1,7 @@
-__all__ = ("UrlInfo",)
-from .url_info import UrlInfo
+__all__ = (
+    "SlugBase",
+    "CustomSlug",
+    "SlugInfo",
+    "UrlBase",
+)
+from .slugs import SlugBase, CustomSlug, SlugInfo, UrlBase

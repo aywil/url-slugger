@@ -1,15 +1,26 @@
 from contextlib import asynccontextmanager
+from typing import Annotated
 
 import uvicorn
-from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core import settings
-from core.db.crud import add_slug_db, get_slug_stats, url_from_slug
+from core.db.crud import (
+    create_custom_slug,
+    create_slug,
+    get_stats_from_slug,
+    get_url_from_slug,
+)
 from core.db.db import engine, get_db
-from core.schemas.link_info import UrlInfo
-from core.utils import create_slug, validated_url
+from core.db.exceptions import (
+    CustomSlugError,
+    InvalidUrlError,
+    NotFoundSlugError,
+    NotFoundStatisticsError,
+)
+from core.schemas import SlugInfo, CustomSlug, UrlBase
 
 
 @asynccontextmanager
@@ -21,42 +32,62 @@ async def lifespan(my_app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
-@app.post("/shortlink")
+@app.post("/create_slug")
 async def create_slug_url(
-    url: str = Query(...),
-    session: AsyncSession = Depends(get_db),
+    url: UrlBase,
+    session: Annotated[AsyncSession, Depends(get_db)],
 ) -> str:
     try:
-        validated_url(url=url)
+        slug = await create_slug(
+            url=url.url,
+            session=session,
+        )
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
-    slug = create_slug()
-
-    await add_slug_db(
-        url=url,
-        slug=slug,
-        session=session,
-    )
-
     return slug
 
 
-@app.get("/stats", response_model=UrlInfo)
+@app.post("/create_custom_slug")
+async def create_custom_slug_url(
+    CustomSlug: CustomSlug,
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> dict:
+    try:
+        custom_slug = await create_custom_slug(
+            url=CustomSlug.url,
+            slug=CustomSlug.slug,
+            session=session,
+        )
+    except CustomSlugError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except InvalidUrlError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    return {"msg": f"Slug {custom_slug} successfully created!"}
+
+
+@app.get("/stats", response_model=SlugInfo)
 async def get_stats(
     slug: str,
     session: AsyncSession = Depends(get_db),
-) -> UrlInfo:
-    stats = await get_slug_stats(
-        slug=slug,
-        session=session,
-    )
-    if not stats:
+) -> SlugInfo:
+    try:
+        stats = await get_stats_from_slug(
+            slug=slug,
+            session=session,
+        )
+    except NotFoundStatisticsError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Slug with statistics not found",
+            detail=str(e),
         )
 
     return stats
@@ -67,16 +98,16 @@ async def redirect_to_slug(
     slug: str,
     session: AsyncSession = Depends(get_db),
 ) -> RedirectResponse:
-    url = await url_from_slug(
-        slug=slug,
-        session=session,
-    )
-    if not url:
+    try:
+        url = await get_url_from_slug(
+            slug=slug,
+            session=session,
+        )
+    except NotFoundSlugError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Slug doesn't exist",
+            detail=str(e),
         )
-
     return RedirectResponse(
         url=url,
         status_code=302,

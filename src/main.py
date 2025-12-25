@@ -7,20 +7,12 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core import settings
-from core.db.crud import (
-    create_custom_slug,
-    create_slug,
-    get_stats_from_slug,
-    get_url_from_slug,
-)
+from core.db.crud import (create_custom_slug, create_slug, get_stats_from_slug,
+                          get_url_from_slug)
 from core.db.db import engine, get_db
-from core.db.exceptions import (
-    CustomSlugError,
-    InvalidUrlError,
-    NotFoundSlugError,
-    NotFoundStatisticsError,
-)
-from core.schemas import SlugInfo, CustomSlug, UrlBase
+from core.db.exceptions import (CustomSlugError, NotFoundSlugError,
+                                NotFoundStatisticsError)
+from core.schemas import CustomSlug, SlugInfo, UrlBase
 
 
 @asynccontextmanager
@@ -62,11 +54,6 @@ async def create_custom_slug_url(
             session=session,
         )
     except CustomSlugError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
-    except InvalidUrlError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
